@@ -8,19 +8,23 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Extract project ZIP
-        run: |
-          unzip -o ShortsAutoScroll-with-Cloud-Build.zip -d .
-                - name: Fix Java Kotlin compatibility
+        run: unzip -o ShortsAutoScroll-with-Cloud-Build.zip -d .
+
+      - name: Fix Java Kotlin compatibility
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
+
           p = Path("app/build.gradle.kts")
           s = p.read_text()
+
           if "compileOptions {" not in s:
               s = s.replace("android {", """android {
               compileOptions {
@@ -28,6 +32,16 @@ jobs:
                   targetCompatibility = JavaVersion.VERSION_17
               }
           """, 1)
+          else:
+              s = re.sub(
+                  r"sourceCompatibility\s*=\s*JavaVersion\.VERSION_\d+",
+                  "sourceCompatibility = JavaVersion.VERSION_17", s
+              )
+              s = re.sub(
+                  r"targetCompatibility\s*=\s*JavaVersion\.VERSION_\d+",
+                  "targetCompatibility = JavaVersion.VERSION_17", s
+              )
+
           p.write_text(s)
           PY
 
