@@ -15,6 +15,21 @@ jobs:
       - name: Extract project ZIP
         run: |
           unzip -o ShortsAutoScroll-with-Cloud-Build.zip -d .
+                - name: Fix Java Kotlin compatibility
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("app/build.gradle.kts")
+          s = p.read_text()
+          if "compileOptions {" not in s:
+              s = s.replace("android {", """android {
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          """, 1)
+          p.write_text(s)
+          PY
 
       - name: Set up Java
         uses: actions/setup-java@v4
