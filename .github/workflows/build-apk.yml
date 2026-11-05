@@ -72,6 +72,12 @@ jobs:
           echo "===== ACCESSIBILITY SERVICE ====="
           cat app/src/main/java/com/example/shortsautoscroll/AutoScrollAccessibilityService.kt
 
+          echo "===== MAIN ACTIVITY ====="
+          cat app/src/main/java/com/example/shortsautoscroll/MainActivity.kt
+
+          echo "===== ACCESSIBILITY CONFIG ====="
+          cat app/src/main/res/xml/accessibility_service_config.xml
+
           echo "===== APP GRADLE ====="
           cat app/build.gradle.kts
 
