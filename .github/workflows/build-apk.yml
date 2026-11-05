@@ -64,6 +64,17 @@ jobs:
       - name: Install SDK
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
+      - name: Inspect App Permissions
+        run: |
+          echo "===== ANDROID MANIFEST ====="
+          cat app/src/main/AndroidManifest.xml
+
+          echo "===== ACCESSIBILITY SERVICE ====="
+          cat app/src/main/java/com/example/shortsautoscroll/AutoScrollAccessibilityService.kt
+
+          echo "===== APP GRADLE ====="
+          cat app/build.gradle.kts
+
       - name: Build APK
         run: gradle --no-daemon assembleDebug
 
