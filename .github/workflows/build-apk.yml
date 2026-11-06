@@ -99,6 +99,33 @@ jobs:
           print("Next and Previous modes added successfully.")
           PY
 
+      - name: Remove Smart Mode Timer Fallback
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/src/main/java/com/example/shortsautoscroll/AutoScrollAccessibilityService.kt")
+          s = p.read_text()
+
+          old = '''            } else {
+                // Fallback if no usable progress bar is exposed by YouTube.
+                if (now - lastSwipeAt >= intervalMs && smartCandidateSince == 0L) swipeNext()
+            }'''
+
+          new = '''            } else {
+                // Smart mode: wait for video progress detection.
+                // Do not swipe based on the timer.
+            }'''
+
+          if s.count(old) != 1:
+              raise SystemExit("Smart fallback code not found exactly once.")
+
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+
+          print("Smart mode timer fallback removed.")
+          PY
+
       - name: Fix Java Kotlin compatibility
         run: |
           python3 - <<'PY'
