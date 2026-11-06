@@ -16,6 +16,29 @@ jobs:
       - name: Extract project ZIP
         run: unzip -o ShortsAutoScroll-with-Cloud-Build.zip -d .
 
+      - name: Fix Accessibility Timer Loop
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/src/main/java/com/example/shortsautoscroll/AutoScrollAccessibilityService.kt")
+          s = p.read_text()
+
+          old = "            if (!isEnabled()) return\n"
+          new = """            if (!isEnabled()) {
+                          handler.postDelayed(this, 1000L)
+                          return
+                      }
+          """
+
+          if old not in s:
+              raise SystemExit("Expected code not found. Build stopped safely.")
+
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          print("Accessibility timer loop fixed.")
+          PY
+
       - name: Fix Java Kotlin compatibility
         run: |
           python3 - <<'PY'
