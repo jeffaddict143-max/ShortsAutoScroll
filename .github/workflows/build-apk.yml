@@ -120,6 +120,19 @@ jobs:
           print("Smart mode timer fallback removed.")
           PY
 
+      - name: Show Smart Detection Source
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/src/main/java/com/example/shortsautoscroll/AutoScrollAccessibilityService.kt")
+          s = p.read_text()
+
+          start = s.find("findNearEndProgress")
+          print("===== SMART DETECTION SOURCE =====")
+          print(s[max(0, start-500):start+3000])
+          print("===== END SOURCE =====")
+          PY
 
       - name: Fix Java Kotlin compatibility
         run: |
