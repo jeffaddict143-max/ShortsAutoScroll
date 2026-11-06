@@ -1,4 +1,4 @@
-dname: Build Shorts Auto Scroll APK
+name: Build Shorts Auto Scroll APK
 
 on:
   workflow_dispatch:
