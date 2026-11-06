@@ -274,6 +274,19 @@ jobs:
           echo "===== APP GRADLE ====="
           cat app/build.gradle.kts
 
+      - name: Copy Updated Source Files
+        run: |
+          mkdir -p app/src/main/java/com/example/shortsautoscroll
+          mkdir -p app/src/main/res/xml
+          mkdir -p app/src/main/res/values
+
+          cp MainActivity.kt app/src/main/java/com/example/shortsautoscroll/
+          cp AutoScrollAccessibilityService.kt app/src/main/java/com/example/shortsautoscroll/
+          cp VisualProgressCaptureService.kt app/src/main/java/com/example/shortsautoscroll/
+          cp AndroidManifest.xml app/src/main/
+          cp accessibility_service_config.xml app/src/main/res/xml/
+          cp styles.xml app/src/main/res/values/
+
       - name: Build APK
         run: gradle --no-daemon assembleDebug
 
