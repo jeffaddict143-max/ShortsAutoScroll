@@ -1,4 +1,4 @@
-name: Build Shorts Auto Scroll APK
+dname: Build Shorts Auto Scroll APK
 
 on:
   workflow_dispatch:
@@ -37,6 +37,66 @@ jobs:
           s = s.replace(old, new, 1)
           p.write_text(s)
           print("Accessibility timer loop fixed.")
+          PY
+
+                - name: Add Next and Previous Swipe Modes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          base = Path("app/src/main/java/com/example/shortsautoscroll")
+
+          p = base / "MainActivity.kt"
+          s = p.read_text()
+
+          old = '''        root.addView(interval)
+
+                  addText("3. Enable the controller", 18f, true)'''
+
+          new = '''        root.addView(interval)
+
+                  addText("3. Swipe direction", 18f, true)
+                  val direction = Spinner(this)
+                  direction.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item,
+                      listOf("Next Short (swipe up)", "Previous Short (swipe down)"))
+                  direction.setSelection(if (prefs.getString("direction", "next") == "previous") 1 else 0)
+                  root.addView(direction)
+
+                  addText("4. Enable the controller", 18f, true)'''
+
+          if old not in s:
+              raise SystemExit("MainActivity UI anchor not found.")
+
+          s = s.replace(old, new, 1)
+
+          old_save = 'prefs.edit().putString("mode", selectedMode).putInt("interval", seconds).apply()'
+          new_save = '''val selectedDirection = if (direction.selectedItemPosition == 1) "previous" else "next"
+                      prefs.edit().putString("mode", selectedMode).putInt("interval", seconds).putString("direction", selectedDirection).apply()'''
+
+          if s.count(old_save) != 2:
+              raise SystemExit("Settings save anchors not found.")
+
+          s = s.replace(old_save, new_save)
+          p.write_text(s)
+
+          p = base / "AutoScrollAccessibilityService.kt"
+          s = p.read_text()
+
+          old_swipe = '''        val startY = dm.heightPixels * 0.78f
+                  val endY = dm.heightPixels * 0.25f'''
+
+          new_swipe = '''        val previous = getSharedPreferences("shorts_auto", MODE_PRIVATE)
+                  .getString("direction", "next") == "previous"
+                  val startY = dm.heightPixels * (if (previous) 0.25f else 0.78f)
+                  val endY = dm.heightPixels * (if (previous) 0.78f else 0.25f)'''
+
+          if old_swipe not in s:
+              raise SystemExit("Swipe direction anchor not found.")
+
+          s = s.replace(old_swipe, new_swipe, 1)
+          p.write_text(s)
+
+          print("Next and Previous modes added successfully.")
           PY
 
       - name: Fix Java Kotlin compatibility
