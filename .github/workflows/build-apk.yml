@@ -15,7 +15,18 @@ jobs:
 
       - name: Extract project ZIP
         run: unzip -o ShortsAutoScroll-with-Cloud-Build.zip -d .
+        
+      - name: Show MainActivity Source
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
 
+          p = Path("app/src/main/java/com/example/shortsautoscroll/MainActivity.kt")
+          print("===== MAIN ACTIVITY SOURCE =====")
+          print(p.read_text())
+          print("===== END SOURCE =====")
+          PY
+          
       - name: Fix Accessibility Timer Loop
         run: |
           python3 - <<'PY'
