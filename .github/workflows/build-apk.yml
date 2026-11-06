@@ -26,6 +26,17 @@ jobs:
           print(p.read_text())
           print("===== END SOURCE =====")
           PY
+
+      - name: Show Android Manifest Source
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/src/main/AndroidManifest.xml")
+          print("===== ANDROID MANIFEST SOURCE =====")
+          print(p.read_text())
+          print("===== END MANIFEST SOURCE =====")
+          PY
           
       - name: Fix Accessibility Timer Loop
         run: |
