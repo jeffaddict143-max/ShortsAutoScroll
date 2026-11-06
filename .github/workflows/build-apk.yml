@@ -37,17 +37,6 @@ jobs:
           print(p.read_text())
           print("===== END MANIFEST SOURCE =====")
           PY
-
-      - name: Show Accessibility Service Source
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path("app/src/main/java/com/example/shortsautoscroll/AutoScrollAccessibilityService.kt")
-          print("===== ACCESSIBILITY SERVICE SOURCE =====")
-          print(p.read_text())
-          print("===== END ACCESSIBILITY SOURCE =====")
-          PY
           
       - name: Fix Accessibility Timer Loop
         run: |
@@ -236,6 +225,17 @@ jobs:
               )
 
           p.write_text(s)
+          PY
+
+      - name: Show Accessibility Service Source
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/src/main/java/com/example/shortsautoscroll/AutoScrollAccessibilityService.kt")
+          print("===== ACCESSIBILITY SERVICE SOURCE =====")
+          print(p.read_text())
+          print("===== END ACCESSIBILITY SOURCE =====")
           PY
 
       - name: Set up Java
