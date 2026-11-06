@@ -39,7 +39,7 @@ jobs:
           print("Accessibility timer loop fixed.")
           PY
 
-                - name: Add Next and Previous Swipe Modes
+      - name: Add Next and Previous Swipe Modes
         run: |
           python3 - <<'PY'
           from pathlib import Path
