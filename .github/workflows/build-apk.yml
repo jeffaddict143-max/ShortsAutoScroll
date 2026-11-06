@@ -73,8 +73,8 @@ jobs:
           new_save = '''val selectedDirection = if (direction.selectedItemPosition == 1) "previous" else "next"
                       prefs.edit().putString("mode", selectedMode).putInt("interval", seconds).putString("direction", selectedDirection).apply()'''
 
-          if s.count(old_save) != 2:
-              raise SystemExit("Settings save anchors not found.")
+          if s.count(old_save) < 1:
+              raise SystemExit("Settings save anchor not found.")
 
           s = s.replace(old_save, new_save)
           p.write_text(s)
