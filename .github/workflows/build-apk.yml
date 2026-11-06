@@ -119,8 +119,8 @@ jobs:
           p.write_text(s)
           print("Smart mode timer fallback removed.")
           PY
-
-      - name: Show Smart Detection Source
+      
+      - name: Improve Smart Progress Detection
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -128,10 +128,52 @@ jobs:
           p = Path("app/src/main/java/com/example/shortsautoscroll/AutoScrollAccessibilityService.kt")
           s = p.read_text()
 
-          start = s.find("findNearEndProgress")
-          print("===== SMART DETECTION SOURCE =====")
-          print(s[max(0, start-500):start+3000])
-          print("===== END SOURCE =====")
+          start = s.find("    private fun findNearEndProgress(node: AccessibilityNodeInfo): Float? {")
+          end = s.find("    private fun isEnabled(): Boolean =", start)
+
+          if start < 0 or end < 0:
+              raise SystemExit("Could not locate progress detection function.")
+
+          new_function = r'''    private fun findNearEndProgress(node: AccessibilityNodeInfo): Float? {
+                  val range = node.rangeInfo
+                  if (range != null && range.max > range.min) {
+                      val fraction = ((range.current - range.min) /
+                          (range.max - range.min)).coerceIn(0f, 1f)
+                      return fraction
+                  }
+
+                  val desc = (
+                      (node.contentDescription?.toString() ?: "") + " " +
+                      (node.text?.toString() ?: "")
+                  )
+
+                  val timeMatch = Regex(
+                      """(\d{1,2}):(\d{2})\s*(?:/|of)\s*(\d{1,2}):(\d{2})""",
+                      RegexOption.IGNORE_CASE
+                  ).find(desc)
+
+                  if (timeMatch != null) {
+                      val v = timeMatch.groupValues
+                      val current = v[1].toInt() * 60 + v[2].toInt()
+                      val total = v[3].toInt() * 60 + v[4].toInt()
+                      if (total > 0) return (current.toFloat() / total).coerceIn(0f, 1f)
+                  }
+
+                  for (i in 0 until node.childCount) {
+                      val child = node.getChild(i) ?: continue
+                      val found = findNearEndProgress(child)
+                      child.recycle()
+                      if (found != null) return found
+                  }
+
+                  return null
+              }
+
+          '''
+
+          s = s[:start] + new_function + s[end:]
+          p.write_text(s)
+          print("Smart progress detection improved.")
           PY
 
       - name: Fix Java Kotlin compatibility
