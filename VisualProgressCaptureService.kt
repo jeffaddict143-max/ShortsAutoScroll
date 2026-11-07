@@ -141,100 +141,91 @@ class VisualProgressCaptureService : Service() {
     }
 
     private fun analyzeImage(image: Image) {
-        val plane = image.planes[0]
-        val buffer = plane.buffer
+    val plane = image.planes[0]
+    val buffer = plane.buffer
+    val pixelStride = plane.pixelStride
+    val rowStride = plane.rowStride
 
-        val pixelStride = plane.pixelStride
-        val rowStride = plane.rowStride
+    val width = image.width
+    val height = image.height
 
-        val width = image.width
-        val height = image.height
+    // YouTube Shorts progress bar location
+    val xStart = 0
+    val xEnd = width
+    val yStart = (height * 0.855f).toInt()
+    val yEnd = (height * 0.880f).toInt()
 
-        val xStart = (width * 0.08f).toInt()
-        val xEnd = (width * 0.92f).toInt()
-        val scanWidth = xEnd - xStart
+    var bestFraction = 0f
+    var detected = false
 
-        val yStart = (height * 0.85f).toInt()
-        val yEnd = (height * 0.97f).toInt()
+    for (y in yStart until yEnd) {
+        var currentRun = 0
+        var runStart = -1
 
-        var bestFraction = 0f
-        var detected = false
+        for (x in xStart until xEnd) {
+            val index = y * rowStride + x * pixelStride
 
-        for (y in yStart until yEnd step 2) {
-            var current = 0
-            var first = -1
-            var last = -1
+            val r = buffer.get(index).toInt() and 255
+            val g = buffer.get(index + 1).toInt() and 255
+            val b = buffer.get(index + 2).toInt() and 255
 
-            for (x in xStart until xEnd) {
-                val index = y * rowStride + x * pixelStride
+            // White progress only; red means paused
+            val white = r >= 190 &&
+                g >= 190 &&
+                b >= 190 &&
+                kotlin.math.abs(r - g) < 40 &&
+                kotlin.math.abs(g - b) < 40
 
-                val r = buffer.get(index).toInt() and 255
-                val g = buffer.get(index + 1).toInt() and 255
-                val b = buffer.get(index + 2).toInt() and 255
-
-                val white = r > 210 &&
-                    g > 210 &&
-                    b > 210 &&
-                    abs(r - g) < 25 &&
-                    abs(g - b) < 25
-
-                if (white) {
-                    if (first == -1) first = x
-                    current++
-                    last = x
-                } else {
-                    if (first >= 0) {
-                        val startsAtLeft = first <= xStart + scanWidth * 0.04f
-
-                        if (startsAtLeft && current > scanWidth * 0.10f) {
-                            detected = true
-                            bestFraction = maxOf(
-                                bestFraction,
-                                current.toFloat() / scanWidth
-                            )
-                        }
-                    }
-
-                    current = 0
-                    first = -1
-                    last = -1
-                }
-            }
-
-            if (first >= 0) {
-                val startsAtLeft = first <= xStart + scanWidth * 0.04f
-
-                if (startsAtLeft && current > scanWidth * 0.10f) {
+            if (white) {
+                if (runStart == -1) runStart = x
+                currentRun++
+            } else {
+                if (runStart >= 0 &&
+                    runStart <= width * 0.03f &&
+                    currentRun >= width * 0.10f
+                ) {
                     detected = true
                     bestFraction = maxOf(
                         bestFraction,
-                        current.toFloat() / scanWidth
+                        currentRun.toFloat() / width
                     )
                 }
+
+                currentRun = 0
+                runStart = -1
             }
         }
 
-        val prefs = getSharedPreferences("shorts_auto", MODE_PRIVATE)
-
-        if (prefs.getString("mode", "smart") != "smart" ||
-            !prefs.getBoolean("enabled", false)
-        ) return
-
-        if (detected && bestFraction >= 0.96f) {
-            endFrames++
-
-            if (endFrames >= 5) {
-                prefs.edit().putBoolean("visual_end", true).apply()
-                endFrames = 0
-            }
-        } else {
-            endFrames = 0
-
-            if (!detected || bestFraction < 0.70f) {
-                prefs.edit().putBoolean("visual_end", false).apply()
-            }
+        if (runStart >= 0 &&
+            runStart <= width * 0.03f &&
+            currentRun >= width * 0.10f
+        ) {
+            detected = true
+            bestFraction = maxOf(
+                bestFraction,
+                currentRun.toFloat() / width
+            )
         }
     }
+
+    val prefs = getSharedPreferences("shorts_auto", MODE_PRIVATE)
+
+    if (prefs.getString("mode", "smart") != "smart" ||
+        !prefs.getBoolean("enabled", false)
+    ) return
+
+    if (detected && bestFraction >= 0.97f) {
+        endFrames++
+
+        if (endFrames >= 3) {
+            prefs.edit().putBoolean("visual_end", true).apply()
+            endFrames = 0
+        }
+    } else {
+        endFrames = 0
+        prefs.edit().putBoolean("visual_end", false).apply()
+    }
+}
 
     override fun onDestroy() {
         display?.release()
