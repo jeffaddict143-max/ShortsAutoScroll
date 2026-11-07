@@ -140,7 +140,7 @@ class VisualProgressCaptureService : Service() {
         )
     }
 
-    private fun analyzeImage(image: Image) {
+private fun analyzeImage(image: Image) {
     val plane = image.planes[0]
     val buffer = plane.buffer
     val pixelStride = plane.pixelStride
@@ -149,78 +149,51 @@ class VisualProgressCaptureService : Service() {
     val width = image.width
     val height = image.height
 
-    // YouTube Shorts progress bar location
-    val xStart = 0
-    val xEnd = width
-    val yStart = (height * 0.855f).toInt()
-    val yEnd = (height * 0.880f).toInt()
+    var longestWhiteRun = 0
+    var bestY = 0
 
-    var bestFraction = 0f
-    var detected = false
+    // Scan the lower part of the screen
+    val yStart = (height * 0.75f).toInt()
+    val yEnd = (height * 0.95f).toInt()
 
-    for (y in yStart until yEnd) {
+    for (y in yStart until yEnd step 2) {
         var currentRun = 0
         var runStart = -1
 
-        for (x in xStart until xEnd) {
+        for (x in 0 until width step 2) {
             val index = y * rowStride + x * pixelStride
 
             val r = buffer.get(index).toInt() and 255
             val g = buffer.get(index + 1).toInt() and 255
             val b = buffer.get(index + 2).toInt() and 255
 
-            // White progress only; red means paused
-            val white = r >= 190 &&
-                g >= 190 &&
-                b >= 190 &&
-                kotlin.math.abs(r - g) < 40 &&
-                kotlin.math.abs(g - b) < 40
+            val isWhite = r > 190 && g > 190 && b > 190
 
-            if (white) {
+            if (isWhite) {
                 if (runStart == -1) runStart = x
-                currentRun++
+                currentRun += 2
             } else {
-                if (runStart >= 0 &&
-                    runStart <= width * 0.03f &&
-                    currentRun >= width * 0.10f
-                ) {
-                    detected = true
-                    bestFraction = maxOf(
-                        bestFraction,
-                        currentRun.toFloat() / width
-                    )
+                if (currentRun > longestWhiteRun) {
+                    longestWhiteRun = currentRun
+                    bestY = y
                 }
-
                 currentRun = 0
                 runStart = -1
             }
         }
 
-        if (runStart >= 0 &&
-            runStart <= width * 0.03f &&
-            currentRun >= width * 0.10f
-        ) {
-            detected = true
-            bestFraction = maxOf(
-                bestFraction,
-                currentRun.toFloat() / width
-            )
+        if (currentRun > longestWhiteRun) {
+            longestWhiteRun = currentRun
+            bestY = y
         }
     }
 
-    val prefs = getSharedPreferences("shorts_auto", MODE_PRIVATE)
+    android.util.Log.d(
+        "SHORTS_DEBUG",
+        "Screen: ${width}x${height}, longest white line: $longestWhiteRun px, Y: $bestY"
+    )
+}
 
-    if (prefs.getString("mode", "smart") != "smart" ||
-        !prefs.getBoolean("enabled", false)
-    ) return
-
-    if (detected && bestFraction >= 0.97f) {
-        endFrames++
-
-        if (endFrames >= 3) {
-            prefs.edit().putBoolean("visual_end", true).apply()
-            endFrames = 0
-        }
     } else {
         endFrames = 0
         prefs.edit().putBoolean("visual_end", false).apply()
